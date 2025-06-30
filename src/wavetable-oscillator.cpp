@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include <vector>
+#include <atomic>
 #include "shared/shared.cpp"
 #include "oscillators/wavetable.cpp"
 #include "widgets/wavetable-scope.cpp"
@@ -58,6 +59,7 @@ struct WAVE : TinyTricksModule {
 
   WaveTableScope *scope = nullptr;
   WaveTable *waveTable = nullptr;
+  std::atomic<bool> regenWT{false};
 
   dsp::SchmittTrigger syncTrigger;
 
@@ -182,6 +184,10 @@ struct WAVE : TinyTricksModule {
       waveTable->endCapture();
       if (scope)
         scope->generate(waveTable, 10);
+      else
+      {
+        regenWT = true;
+      }
     }
 
     // Mirror
@@ -484,6 +490,11 @@ struct WAVEWidget : TinyTricksModuleWidget {
       scope->setup();
       addChild(scope);
       module->scope = scope;
+      if (module->regenWT && module->waveTable)
+      {
+        scope->generate(module->waveTable, 10);
+        module->regenWT = false;
+      }
     }
     else {
       SvgWidget *placeholder = createWidget<SvgWidget>(mm2px(Vec(24.575f, 11.1f)));
